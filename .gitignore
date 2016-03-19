@@ -1,2 +1,6 @@
+t
+venv
+run_*
 *.pyc
+.DS_Store
 interface.so

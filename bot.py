@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import os.path
 import random
 
@@ -46,12 +47,20 @@ def run_bbox(verbose=False):
         actions.append(action)
         scores.append(bbox.get_score())
 
+    get_outdir = lambda i: 'run_{}'.format(i)
     i = 1
-    while os.path.exists('run_{}.npz'.format(i)):
+    outdir = get_outdir(i)
+    while os.path.exists(outdir):
         i += 1
-    np.savez('run_{}'.format(i),
-             states=np.array(states), actions=np.array(actions),
-             scores=np.array(scores))
+        outdir = get_outdir(i)
+    os.mkdir(outdir)
+    print('saving to {}'.format(outdir))
+    scores = np.array(scores, dtype=np.float32)
+    scores.tofile(os.path.join(outdir, 'scores'))
+    actions = np.array(actions, dtype=np.int8)
+    actions.tofile(os.path.join(outdir, 'actions'))
+    states = np.array(states, dtype=np.float32)
+    states.tofile(os.path.join(outdir, 'states'))
 
     bbox.finish(verbose=1)
 
