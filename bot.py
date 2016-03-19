@@ -45,10 +45,13 @@ def run_bbox(verbose=False):
                     m.predict([clf_state])[0] for m in utility_models])
             except NotFittedError:
                 pass
-        utilities -= utilities.min()
-        p = None if np.isclose(utilities, 0).all() else \
-            utilities / utilities.sum()
-        action = np.random.choice(n_actions, p=p)
+       #utilities -= utilities.min()
+       #p = None if np.isclose(utilities, 0).all() else \
+       #    utilities / utilities.sum()
+        if np.random.rand() < 0.1 or step <= random_steps:
+            action = np.random.choice(n_actions)
+        else:
+            action = np.argmax(utilities)
         # Do action and bookkeeping
         has_next = bbox.do_action(action)
         states.append(np.array(state))
