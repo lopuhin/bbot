@@ -2,5 +2,6 @@ t
 venv
 run_*
 *.pyc
+.pylintrc
 .DS_Store
 interface.so
