@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+import os.path
+import random
+
+import numpy as np
 import interface as bbox
 
 
@@ -8,8 +13,7 @@ def get_action_by_state(state, verbose=0):
 
         print "score = {}, time = {}".format(bbox.get_score(), bbox.get_time())
 
-    action_to_do = 0
-    return action_to_do
+    return random.randint(0, 3)
 
 
 n_features = n_actions = -1
@@ -31,10 +35,23 @@ def run_bbox(verbose=False):
 
     prepare_bbox()
 
+    states, actions, scores = [], [], []
+
     while has_next:
         state = bbox.get_state()
         action = get_action_by_state(state)
         has_next = bbox.do_action(action)
+
+        states.append(np.array(state))
+        actions.append(action)
+        scores.append(bbox.get_score())
+
+    i = 1
+    while os.path.exists('run_{}.npz'.format(i)):
+        i += 1
+    np.savez('run_{}'.format(i),
+             states=np.array(states), actions=np.array(actions),
+             scores=np.array(scores))
 
     bbox.finish(verbose=1)
 
