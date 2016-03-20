@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import os.path
+import cPickle as pickle
 
 import numpy as np
 import interface as bbox
@@ -17,6 +18,8 @@ def run_bbox(verbose=False):
     bbox.load_level("../levels/train_level.data", verbose=True)
 
     states, actions, scores, rewards = [], [], [], []
+    with open('utility_models.pkl', 'rb') as f:
+        utility_models = pickle.load(f)
 
     step = 0
     has_next = 1
@@ -24,6 +27,8 @@ def run_bbox(verbose=False):
         step += 1
         state = bbox.get_state()
         action = np.random.choice(n_actions)
+        utilities = [m.predict([state]) for m in utility_models]
+        action = np.argmax(utilities)
         # Do action and bookkeeping
         has_next = bbox.do_action(action)
         states.append(np.array(state))

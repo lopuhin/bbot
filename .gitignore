@@ -5,3 +5,4 @@ run_*
 .pylintrc
 .DS_Store
 interface.so
+*.pkl
