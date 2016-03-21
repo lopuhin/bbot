@@ -22,19 +22,23 @@ class ExperienceReplay(object):
     def get_batch(self, model, batch_size=10):
         len_memory = len(self.memory)
         num_actions = model.output_shape[-1]
-        env_dim = self.memory[0][0][0].shape[1]
+        env_dim = self.memory[0][0][0].shape[0]
         inputs = np.zeros((min(len_memory, batch_size), env_dim))
         targets = np.zeros((inputs.shape[0], num_actions))
-        for i, idx in enumerate(
-                np.random.randint(0, len_memory, size=inputs.shape[0])):
-            (state_t, action_t, reward_t, state_tp1), game_over = \
-                self.memory[idx]
 
-            inputs[i:i+1] = state_t
+        indices = np.random.randint(0, len_memory, size=inputs.shape[0])
+        t_predictions = model.predict(
+            np.array([self.memory[idx][0][0] for idx in indices]))
+        tp1_predictions = model.predict(
+            np.array([self.memory[idx][0][-1] for idx in indices]))
+
+        for i, idx in enumerate(indices):
+            (state_t, action_t, reward_t, _), game_over = self.memory[idx]
+            inputs[i] = state_t
             # There should be no target values for actions not taken.
             # Thou shalt not correct actions not taken #deep
-            targets[i] = model.predict(state_t)[0]
-            Q_sa = np.max(model.predict(state_tp1)[0])
+            targets[i] = t_predictions[i]
+            Q_sa = np.max(tp1_predictions[i])
             if game_over:  # if game_over is True
                 targets[i, action_t] = reward_t
             else:
@@ -55,12 +59,11 @@ def main():
     epoch = 10
 
     model = Sequential()
-    model.add(Dense(hidden_size, input_shape=[input_size,], activation='sigmoid'))
+    model.add(Dense(hidden_size, input_shape=[input_size], activation='sigmoid'))
     model.add(Dense(hidden_size, activation=activation))
     model.add(Dense(num_actions))
     model.compile('adam', 'mse')
 
-    # If you want to continue training from a previous model, just uncomment the line bellow
     # model.load_weights('model.h5')
 
     # Define environment/game
@@ -75,7 +78,7 @@ def main():
         bbox.reset_level()
         game_over = False
         # get initial input
-        get_state = lambda : bbox.get_state().reshape((1, -1)) / 10
+        get_state = lambda : bbox.get_state() / 10
         input_t = get_state()
         score = 0
         step = 0
@@ -88,8 +91,8 @@ def main():
             if np.random.rand() <= epsilon:
                 action = np.random.randint(0, num_actions, size=1)
             else:
-                q = model.predict(input_tm1)
-                action = np.argmax(q[0])
+                q = model.predict(np.array([input_tm1]))[0]
+                action = np.argmax(q)
 
             # apply action, get rewards and new state
             game_over = not bbox.do_action(action)
