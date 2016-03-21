@@ -5,12 +5,10 @@ import numpy as np
 import interface as bbox
 from keras.models import Sequential
 from keras.layers.core import Dense
-from keras.layers.normalization import BatchNormalization
-from keras.optimizers import sgd
 
 
 class ExperienceReplay(object):
-    def __init__(self, max_memory=100, discount=.9):
+    def __init__(self, max_memory=100, discount=.5):
         self.max_memory = max_memory
         self.memory = list()
         self.discount = discount
@@ -48,21 +46,19 @@ class ExperienceReplay(object):
 def main():
     epsilon = .1  # exploration
     num_actions = 4
-    epoch = 10
-    max_memory = 500
-    hidden_size = 24
-    batch_size = 50
     input_size = 36
-    activation = 'sigmoid'
+    hidden_size = 24
+    activation = 'relu'
+    max_memory = 2000
+    batch_size = 50
+    mini_epoch = 5
+    epoch = 10
 
     model = Sequential()
-  # model.add(BatchNormalization(input_shape=[input_size,]))
     model.add(Dense(hidden_size, input_shape=[input_size,], activation='sigmoid'))
     model.add(Dense(hidden_size, activation=activation))
     model.add(Dense(num_actions))
-   #model.add(Dense(num_actions, input_shape=[input_size,],))
-   #model.compile('adam', 'mse')
-    model.compile(sgd(lr=.1), 'msle')
+    model.compile('adam', 'mse')
 
     # If you want to continue training from a previous model, just uncomment the line bellow
     # model.load_weights('model.h5')
@@ -106,12 +102,14 @@ def main():
             exp_replay.remember([input_tm1, action, reward, input_t], game_over)
 
             # adapt model
-            inputs, targets = exp_replay.get_batch(model, batch_size=batch_size)
+            for _ in range(mini_epoch):
+                inputs, targets = exp_replay.get_batch(
+                    model, batch_size=batch_size)
+                loss += model.train_on_batch(inputs, targets)[0]
 
-            loss += model.train_on_batch(inputs, targets)[0]
             if step % report_steps == 0:
                 print('Step {:07d} | Loss {:.4f} | Score {}'.format(
-                    step, loss / report_steps, score))
+                    step, loss / (report_steps * mini_epoch), score))
                 loss = 0.
 
         print('Epoch {:03d}/{} | Score {}'.format(e, epoch - 1, score))
