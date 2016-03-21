@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 from __future__ import print_function
+import cPickle as pickle
 
 import numpy as np
 import interface as bbox
+from sklearn import preprocessing
 from keras.models import Sequential
 from keras.layers.core import Dense
 
@@ -59,7 +61,8 @@ def main():
     epoch = 10
 
     model = Sequential()
-    model.add(Dense(hidden_size, input_shape=[input_size], activation='sigmoid'))
+    model.add(Dense(hidden_size, input_shape=[input_size],
+                    activation=activation))
     model.add(Dense(hidden_size, activation=activation))
     model.add(Dense(num_actions))
     model.compile('adam', 'mse')
@@ -72,13 +75,23 @@ def main():
     # Initialize experience replay object
     exp_replay = ExperienceReplay(max_memory=max_memory)
 
+    # FIXME
+   #states = np.fromfile('run_random/states', dtype=np.float32)\
+   #    .reshape([1214494, 36])
+   #scaler = preprocessing.StandardScaler()
+   #scaler.fit(states)
+   #with open('scaler.pkl', 'wb') as f:
+   #    scaler = pickle.dump(scaler, f, protocol=-1)
+    with open('scaler.pkl', 'rb') as f:
+        scaler = pickle.load(f)
+
     # Train
     for e in range(epoch):
         loss = 0.
         bbox.reset_level()
         game_over = False
         # get initial input
-        get_state = lambda : bbox.get_state() / 10
+        get_state = lambda : scaler.transform(np.array([bbox.get_state()]))[0]
         input_t = get_state()
         score = 0
         step = 0
